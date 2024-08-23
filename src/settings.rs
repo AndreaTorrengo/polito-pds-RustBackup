@@ -1,5 +1,6 @@
-use std::io::{Read, Write};
+use std::io::{Read, Write, BufReader};
 use std::fs;
+use std::path::Path;
 
 #[derive(Debug)]
 pub struct Settings {
@@ -29,16 +30,16 @@ impl Default for Settings {
  */
 pub(crate) fn read_settings(config_file_path: &str, config: &mut Settings) {
     let mut file_content = String::new();
-    let file = fs::File::open(config_file_path);
-    if file.is_ok() {
-        let _ = file.unwrap().read_to_string(&mut file_content);
-        let content_lines: Vec<String> = file_content.split("\n").map(|s| s.to_string()).collect();
-        // config.auto_start = content_lines[num_path_lines + 1].trim().contains("true");
 
+    if Path::new(config_file_path).exists() {
+        let file = fs::File::open(config_file_path);
+        let _ = BufReader::new(file.unwrap()).read_to_string(&mut file_content);
+        let content_lines: Vec<String> = file_content.split("\n").map(|s| s.to_string()).collect();
         let mut path_begin_line: Option<usize> = None;
         let mut path_end_line: Option<usize> = None;
         let mut auto_start_line: Option<usize> = None;
         let mut multi_thread_line: Option<usize> = None;
+
         for (index, elm) in content_lines.iter().enumerate() {
             if path_begin_line.is_none() && elm.contains("paths_to_backup") {
                 path_begin_line = Some(index + 1);
@@ -72,6 +73,7 @@ pub(crate) fn write_settings(config_file_path: &str, config: &Settings) {
     let file_opt = fs::File::create(config_file_path);
     if file_opt.is_err() { println!("Could not write on {}", config_file_path); }
     let mut file = file_opt.unwrap();
+
     file.write(b"paths_to_backup={\n\t").unwrap();
     file.write(config.paths_to_backup.join("\n\t").as_bytes()).unwrap();
     file.write(b"\n}\n").unwrap();
