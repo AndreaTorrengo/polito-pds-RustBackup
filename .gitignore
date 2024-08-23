@@ -2,4 +2,4 @@
 /.vscode
 /src/backup
 /backup
-./settings.dat
+settings.dat
