@@ -5,14 +5,14 @@ use std::path::Path;
 #[derive(Debug)]
 pub struct Settings {
     pub(crate) paths_to_backup: Vec<String>,
-    pub(crate) auto_start: bool,
+    pub(crate) keep_daemon_alive: bool,
     pub(crate) multi_thread: bool,
 }
 impl Default for Settings {
     fn default() -> Self {
         Self { 
             paths_to_backup: vec![home::home_dir().expect("Cannot find home directory for this user").to_str().unwrap().to_owned()], 
-            auto_start: true,
+            keep_daemon_alive: true,
             multi_thread: true,
         }
     }
@@ -37,7 +37,7 @@ pub(crate) fn read_settings(config_file_path: &str, config: &mut Settings) {
         let content_lines: Vec<String> = file_content.split("\n").map(|s| s.to_string()).collect();
         let mut path_begin_line: Option<usize> = None;
         let mut path_end_line: Option<usize> = None;
-        let mut auto_start_line: Option<usize> = None;
+        let mut keep_daemon_alive_line: Option<usize> = None;
         let mut multi_thread_line: Option<usize> = None;
 
         for (index, elm) in content_lines.iter().enumerate() {
@@ -47,19 +47,19 @@ pub(crate) fn read_settings(config_file_path: &str, config: &mut Settings) {
             if path_end_line.is_none() && elm.contains("}") {
                 path_end_line = Some(index - 1);
             }
-            if auto_start_line.is_none() && elm.contains("auto_start") {
-                auto_start_line = Some(index);
+            if keep_daemon_alive_line.is_none() && elm.contains("keep_daemon_alive") {
+                keep_daemon_alive_line = Some(index);
             }
             if multi_thread_line.is_none() && elm.contains("multi_thread") {
                 multi_thread_line = Some(index);
             }
         }
-        if path_begin_line.is_none() || path_end_line.is_none() || auto_start_line.is_none() || multi_thread_line.is_none() {
+        if path_begin_line.is_none() || path_end_line.is_none() || keep_daemon_alive_line.is_none() || multi_thread_line.is_none() {
             panic!("Invalid config in {}", config_file_path);
         }
         let path_lines = &content_lines[path_begin_line.unwrap()..=path_end_line.unwrap()];
         config.paths_to_backup = path_lines.iter().map(|p| p.trim().to_string()).collect();
-        config.auto_start = content_lines[auto_start_line.unwrap()].contains("true");
+        config.keep_daemon_alive = content_lines[keep_daemon_alive_line.unwrap()].contains("true");
         config.multi_thread = content_lines[multi_thread_line.unwrap()].contains("true");
     } else {
         *config = Settings::default();
@@ -77,6 +77,6 @@ pub(crate) fn write_settings(config_file_path: &str, config: &Settings) {
     file.write(b"paths_to_backup={\n\t").unwrap();
     file.write(config.paths_to_backup.join("\n\t").as_bytes()).unwrap();
     file.write(b"\n}\n").unwrap();
-    file.write(format!("auto_start={}", config.auto_start).as_bytes()).unwrap();
+    file.write(format!("keep_daemon_alive={}", config.keep_daemon_alive).as_bytes()).unwrap();
     file.write(format!("multi_thread={}", config.multi_thread).as_bytes()).unwrap();
 }

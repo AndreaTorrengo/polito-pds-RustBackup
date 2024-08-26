@@ -2,5 +2,5 @@ paths_to_backup={
 	D:\_POLI\Programmazione_di_sistema\RUST\progetto_esame\old_requirements
 	D:\_POLI\Programmazione_di_sistema\RUST\progetto_esame\rust_backup\.git
 }
-auto_start=true
+keep_daemon_alive=true
 multi_thread=true

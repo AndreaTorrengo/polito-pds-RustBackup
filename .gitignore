@@ -2,4 +2,5 @@
 /.vscode
 /src/backup
 /backup
+/daemon
 settings.dat

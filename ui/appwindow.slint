@@ -1,0 +1,28 @@
+import { Button, VerticalBox } from "std-widgets.slint";
+
+export component AppWindow inherits Window {
+    in-out property <int> counter: 42;
+    callback request-increase-value();
+    callback request-exit();
+
+    VerticalBox {
+        Text {
+            text: "Counter: \{root.counter}";
+        }
+
+        Button {
+            text: "Increase value";
+            clicked => {
+                root.request-increase-value();
+            }
+        }
+        HorizontalLayout {
+            Button {
+                text: "Exit GUI and daemon";
+                clicked => {
+                    root.request-exit();
+                }
+            }
+        }
+    }
+}
