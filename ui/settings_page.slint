@@ -1,0 +1,127 @@
+import { GridBox, TextEdit, Switch, HorizontalBox, Button, ScrollView, StandardListView, VerticalBox, LineEdit, ListView } from "std-widgets.slint";
+
+export struct AppSettings {
+    keep_alive: bool,
+    multithread: bool,
+    paths_to_backup: string,
+}
+
+
+export component Settings inherits Window {
+    in-out property <AppSettings> settings;
+    in-out property <bool> save-label-visible: false;
+    in-out property <string> textarea_text: settings.paths-to-backup;
+    callback save-settings(AppSettings);
+    callback open-path-dialog(bool) -> string;
+
+    GridLayout {
+        padding-top: 50px;
+        padding-left: 60px;
+        padding-right: 60px;
+        spacing-horizontal: 10px;
+        spacing-vertical: 10px;
+        
+        // First row
+        GridLayout {
+            max-height: 150px;
+            spacing-horizontal: 20px;
+            spacing-vertical: 20px;
+            row: 0;
+
+            Text {
+                vertical-alignment: center;
+                text: "Allow this service to run in background";
+                font-size: 14px;
+                col: 0;
+                row: 0;
+            }
+            Switch {
+                checked: settings.keep-alive;
+                col: 1;
+                row: 0;
+                toggled => { settings.keep-alive = self.checked; }
+            }
+            Text {
+                vertical-alignment: center;
+                text: "Allow multithreaded backup";
+                font-size: 14px;
+                col: 0;
+                row: 1;
+            }
+            Switch {
+                checked: settings.multithread;
+                col: 1;
+                row: 1;
+                toggled => { settings.multithread = self.checked; }
+            }
+            Text {
+                vertical-alignment: center;
+                text: "Paths to backup:";
+                font-size: 14px;
+                col: 0;
+                row: 2;
+            }
+        }
+        // Second row
+        HorizontalLayout {
+            row: 1;
+            VerticalLayout {
+                //width: 80%;
+                //width: parent.width * 0.9;
+                //max-height: root.height * 0.25;
+                textarea := TextEdit {
+                    //height: 150px;
+                    text <=> textarea_text;
+                }
+                HorizontalLayout {
+                    Button {    
+                        text: "Add Directory";
+                        height: 30px;
+                        clicked => {
+                            textarea_text += "\n" + open-path-dialog(true);
+                            textarea.viewport-y = min(0px, - textarea.viewport-height + textarea.visible-height);
+                        } 
+                    }
+                    Button {    
+                        text: "Add File";
+                        height: 30px;
+                        clicked => {
+                            textarea_text += "\n" + open-path-dialog(false);
+                            textarea.viewport-y = min(0px, - textarea.viewport-height + textarea.visible-height);
+                        } 
+                    }
+                }
+            }
+        }
+        // Third row
+        GridLayout {
+            spacing-horizontal: 20px;
+            spacing-vertical: 20px;
+            padding-bottom: 30px;
+            max-height: 100px;
+            row: 2;
+            
+            Button {
+                height: 40px;
+                text: "Save settings";
+                primary: true;
+                col: 0;
+                row: 0;
+                clicked => {
+                    settings.paths-to-backup = textarea_text;
+                    save-label-visible = true;
+                    save-settings(settings);
+                }
+            }
+            Text {
+                vertical-alignment: center;
+                height: 40px;
+                font-size: 12px;
+                text: "Close and reopen the GUI for changes to take effect";
+                col: 1;
+                row: 0;
+                visible: save-label-visible;
+            }
+        }
+    }
+}

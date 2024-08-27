@@ -1,26 +1,51 @@
-import { Button, VerticalBox } from "std-widgets.slint";
+import { Button, VerticalBox, HorizontalBox, GridBox } from "std-widgets.slint";
+import { Settings, AppSettings } from "settings_page.slint";
 
 export component AppWindow inherits Window {
-    in-out property <int> counter: 42;
-    callback request-increase-value();
+    in-out property <AppSettings> app_settings;
+    in-out property <int> selected_page: 0;
     callback request-exit();
+    callback request-save-settings(AppSettings);
+    callback request-path-dialog(bool) -> string;   // If arg is true, open a Path dialog, else open a File dialog
+    width: 1000px;
+    height: 500px;
+    default-font-size: 14px;
 
-    VerticalBox {
-        Text {
-            text: "Counter: \{root.counter}";
-        }
+    HorizontalLayout {
+        VerticalLayout {
+            width: 200px;
+            spacing: 0px;
+            //col: 0;
 
-        Button {
-            text: "Increase value";
-            clicked => {
-                root.request-increase-value();
-            }
-        }
-        HorizontalLayout {
             Button {
+                max-height: 50px;
+                text: "Backup";
+                clicked => { selected_page = 0; }
+            }
+            Button {
+                max-height: 50px;
+                text: "Settings";
+                clicked => { selected_page = 1; }
+            }
+            Button {
+                max-height: 50px;
                 text: "Exit GUI and daemon";
                 clicked => {
                     root.request-exit();
+                }
+            }
+        }
+        
+        VerticalLayout {
+            if (selected_page == 0) : Text { text: "Content for Page 1"; }
+            if (selected_page == 1) : Settings { 
+                settings <=> app_settings;
+                save-settings => {
+                    selected_page = 0;
+                    request-save-settings(self.settings);
+                }
+                open-path-dialog(openPathDialog) => {
+                    request-path-dialog(openPathDialog)
                 }
             }
         }

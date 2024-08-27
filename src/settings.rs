@@ -17,6 +17,7 @@ impl Default for Settings {
         }
     }
 }
+pub const CONFIG_FILE_PATH: &str = "./settings.dat";
 
 /**
  * Reads settings file. If it does not exists, create a new one.
@@ -34,7 +35,7 @@ pub(crate) fn read_settings(config_file_path: &str, config: &mut Settings) {
     if Path::new(config_file_path).exists() {
         let file = fs::File::open(config_file_path);
         let _ = BufReader::new(file.unwrap()).read_to_string(&mut file_content);
-        let content_lines: Vec<String> = file_content.split("\n").map(|s| s.to_string()).collect();
+        let content_lines: Vec<String> = file_content.split("\n").filter(|s| !s.is_empty()).map(|s| s.to_string()).collect();
         let mut path_begin_line: Option<usize> = None;
         let mut path_end_line: Option<usize> = None;
         let mut keep_daemon_alive_line: Option<usize> = None;
@@ -77,6 +78,6 @@ pub(crate) fn write_settings(config_file_path: &str, config: &Settings) {
     file.write(b"paths_to_backup={\n\t").unwrap();
     file.write(config.paths_to_backup.join("\n\t").as_bytes()).unwrap();
     file.write(b"\n}\n").unwrap();
-    file.write(format!("keep_daemon_alive={}", config.keep_daemon_alive).as_bytes()).unwrap();
+    file.write(format!("keep_daemon_alive={}\n", config.keep_daemon_alive).as_bytes()).unwrap();
     file.write(format!("multi_thread={}", config.multi_thread).as_bytes()).unwrap();
 }

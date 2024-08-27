@@ -67,8 +67,9 @@ fn listen_for_keys(gui_opened: Arc<(Mutex<bool>, Condvar)>, backup_running: Arc<
                     if ctrl_pressed && shift_pressed && alt_pressed {
                         // Read condvar value (backup must not be running for this command to work!)
                         if !get_value_condvar_tuple(backup_running.clone()) {
-                            // CTRL + SHIFT + ALT + B detected, notify main thread to start backup
+                            // CTRL + SHIFT + ALT + B detected, notify main thread to reopen GUI and start backup
                             println!("CTRL + SHIFT + ALT + B detected!");
+                            set_and_wait_condvar_tuple(gui_opened.clone(), Some(true), None);
                             set_and_wait_condvar_tuple(backup_running.clone(), Some(true), None);
                             // ...call backup here
                         } else {
@@ -135,7 +136,8 @@ fn listen_for_mouse_drag(listening: Arc<Mutex<bool>>, width: u32, height: u32) {
     }
 }
 
-pub fn start_daemon(settings: &mut Settings) {
+pub fn start_daemon(settings: Settings) {
+    let settings_mutex = Arc::new(Mutex::new(settings));
     if is_process_already_running("rust_backup") {
         println!("This process is already running. Cannot launch more than one instance.");
         return;
@@ -168,7 +170,7 @@ pub fn start_daemon(settings: &mut Settings) {
     // });
 
     loop {
-        let gui_status = open_gui(backup_running.clone(), settings);
+        let gui_status = open_gui(backup_running.clone(), settings_mutex.clone());
         // When the GUI is closed, check the status (keep_alive)
         if gui_status.is_ok_and(|s| !s) {
             break;

@@ -10,18 +10,17 @@ use daemon::start_daemon;
 
 
 fn main() {
-    const CONFIG_FILE_PATH: &str = "./settings.dat";
     const DEFAULT_BACKUP_DIR: &str = "./backup/";
     let mut config = Settings::default();
     read_settings(CONFIG_FILE_PATH, &mut config);
 
-    // start daemon process that listens to keyboard/mouse events
-    start_daemon(&mut config);
+    // start daemon process that listens to keyboard/mouse events. Consumes config object
+    start_daemon(config);
 
     // match backup(&config, &DEFAULT_BACKUP_DIR) {
     //     Ok(()) => {},
     //     Err(e) => eprint!("Error when trying to backup: {}", e),
     // };
     //write_settings(CONFIG_FILE_PATH, &config);
-    println!("{:?}", config);
+    //println!("{:?}", config);
 }
