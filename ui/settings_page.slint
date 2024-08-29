@@ -7,7 +7,7 @@ export struct AppSettings {
 }
 
 
-export component Settings inherits Window {
+export component Settings {
     in-out property <AppSettings> settings;
     in-out property <bool> save-label-visible: false;
     in-out property <string> textarea_text: settings.paths-to-backup;

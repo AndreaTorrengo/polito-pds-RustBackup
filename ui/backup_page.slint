@@ -1,0 +1,79 @@
+
+
+import { TextEdit, ProgressIndicator } from "std-widgets.slint";
+export component BackupPage {
+    in-out property <string> textarea_text;
+    in-out property <bool> backup_completed;
+    in-out property <string> backup_log;
+    in-out property <float> backup_perc;
+
+    GridLayout {
+        padding-top: 50px;
+        padding-left: 60px;
+        padding-right: 60px;
+        spacing-horizontal: 10px;
+        spacing-vertical: 10px;
+        
+        // First row
+        GridLayout {
+            max-height: 150px;
+            spacing-horizontal: 20px;
+            spacing-vertical: 20px;
+            row: 0;
+
+            //VerticalLayout {
+                Text {
+                    vertical-alignment: center;
+                    text: "Status log";
+                    font-size: 20px;
+                }
+                /*Text {
+                    vertical-alignment: center;
+                    text: "-- Beginning backup --";
+                    font-size: 14px;
+                }*/
+            //}
+        }
+        // Second row
+        HorizontalLayout {
+            row: 1;
+            padding-top: 20px;
+            VerticalLayout {
+                textarea := TextEdit {
+                    //height: 150px;
+                    read-only: true;
+                    text <=> backup_log;
+                }
+            }
+        }
+        HorizontalLayout {
+            row: 2;
+            
+            ProgressIndicator {
+                height: 50px;
+                progress <=> backup_perc;
+            }
+        }
+        // Third row
+        HorizontalLayout {
+            padding-bottom: 30px;
+            max-height: 100px;
+            row: 3;
+            
+            if backup_completed : Text {
+                vertical-alignment: center;
+                horizontal-alignment: center;
+                height: 40px;
+                font-size: 32px;
+                text: "Backup completed";
+            }
+            if !backup_completed : Text {
+                vertical-alignment: center;
+                horizontal-alignment: center;
+                height: 40px;
+                font-size: 24px;
+                text: "... backing up files ...";
+            }
+        }
+    }
+}

@@ -1,40 +1,94 @@
 use std::path::Path;
+use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::{thread, time};
 use std::sync::mpsc::{self, Receiver, Sender, TryRecvError};
 
 extern crate fs_extra;
-use fs_extra::dir::*;
+use fs_extra::{copy_items_with_progress, TransitProcess};
+use fs_extra::dir::{CopyOptions, create_all};
 use fs_extra::error::*;
+use slint::invoke_from_event_loop;
 use crate::settings::*;
+use crate::ui::AppWindow;
 
-pub(crate) fn backup(conf: &Settings, to: &'static str) -> Result<()> {
-    let config: Arc<Mutex<&Settings>> = Arc::new(Mutex::new(conf));
-    let path_to = Path::new(to);
+pub(crate) fn backup(config: Arc<Mutex<Settings>>, dest_path_str: &'static str, ui_handle: slint::Weak<AppWindow>) -> Result<()> {
+    let path_to = Path::new(dest_path_str);
     create_all(&path_to, true)?;    // Create the destination directory, if it does not already exist
 
-    let opt = CopyOptions::new();
+    let mut opt = CopyOptions::new();
+    opt.copy_inside = true;
+    opt.overwrite = true;
     //opt.buffer_size = 1;
     let (tx, rx): (Sender<TransitProcess>, Receiver<TransitProcess>) = mpsc::channel();
-    let config_clone = config.clone();
-    let config_mutex = config_clone.lock().unwrap();
-    let mut path_from_vec: Vec<& Path> = vec![];
-    config_mutex.paths_to_backup.iter().for_each(|path| { path_from_vec.push(Path::new(path)); });
+    let settings = config.lock().unwrap();
+    let mut path_from_vec: Vec<_> = vec![];
+    //settings.paths_to_backup.iter().for_each(|path| { path_from_vec.push(path.as_str()); });
+    settings.paths_to_backup.iter().for_each(|path| { path_from_vec.push(Path::new(path)); });
+    let multithread_enabled = settings.multi_thread;
 
     let ref_path_from_vec = &path_from_vec;
     let ref_opt = &opt;
-
+    
     thread::scope(|s| {
+        struct FileStat {
+            dir: String,
+            file: String,
+            status: f32,
+        }
         // Receiver thread loop
         thread::spawn(move || {
+            let files_status_mutex: Arc<Mutex<Vec<FileStat>>> = Arc::new(Mutex::new(Vec::new()));
+            let backup_log_mutex = Arc::new(Mutex::new(String::from("")));
+
             loop {
+                let files_status_m1 = files_status_mutex.clone();
+                let backup_log_m1 = backup_log_mutex.clone();
+                let mut file_status_1 = files_status_m1.lock().unwrap();
+                let mut backup_log_1 = backup_log_m1.lock().unwrap();
+
+                let files_status_m2 = files_status_mutex.clone();
+                let backup_log_m2 = backup_log_mutex.clone();
+                let ui_handle_clone = ui_handle.clone();
+
                 match rx.try_recv() {
                     Ok(process_info) => {
-                        println!("{} of {} bytes",
-                                process_info.copied_bytes,
-                                process_info.total_bytes);
+                        let elm = file_status_1.iter_mut().find(|x| x.dir == process_info.dir_name && x.file == process_info.file_name);
+                        
+                        if elm.is_none() {
+                            backup_log_1.push_str(format!("\nBacking up {}/{}...", process_info.dir_name, process_info.file_name).as_str());
+                            file_status_1.push(FileStat{
+                                dir: process_info.dir_name, 
+                                file: process_info.file_name, 
+                                status: process_info.copied_bytes as f32 / process_info.total_bytes as f32
+                            });
+                            invoke_from_event_loop(move || {
+                                let bk = backup_log_m2.lock().unwrap();
+                                if let Some(ui_weak) = ui_handle_clone.upgrade() {
+                                    ui_weak.set_backup_log(slint::SharedString::from(bk.as_str()));
+                                }
+                            }).unwrap();
+                        } else {
+                            elm.unwrap().status = process_info.copied_bytes as f32 / process_info.total_bytes as f32;
+                            let status_sum = file_status_1.iter().map(|x| x.status / file_status_1.len() as f32).sum();
+                            invoke_from_event_loop(move || {
+                                if let Some(ui_weak) = ui_handle_clone.upgrade() {
+                                    ui_weak.set_backup_perc(status_sum);
+                                }
+                            }).unwrap();
+                        }
+                        // println!("{} of {} bytes",
+                        //     process_info.copied_bytes,
+                        //     process_info.total_bytes);
                     }
                     Err(TryRecvError::Disconnected) => {
+                        backup_log_1.push_str("\n\n ====>  Backup completed successfully  <====");
+                        let bk = backup_log_m2.clone();
+                        invoke_from_event_loop(move || {
+                            if let Some(ui_weak) = ui_handle_clone.upgrade() {
+                                ui_weak.set_backup_log(slint::SharedString::from(bk.lock().unwrap().as_str()));
+                            }
+                        }).unwrap();
                         println!("Backup completed!");
                         break;
                     }
@@ -47,7 +101,7 @@ pub(crate) fn backup(conf: &Settings, to: &'static str) -> Result<()> {
         let mut index_path: usize = 0;
         let n_paths = path_from_vec.len();
 
-        if config_clone.lock().unwrap().multi_thread {
+        if multithread_enabled {
             nthread = std::thread::available_parallelism().unwrap().get();   // get number of core for current CPU
         }
         
@@ -65,7 +119,7 @@ pub(crate) fn backup(conf: &Settings, to: &'static str) -> Result<()> {
                         fs_extra::dir::TransitProcessResult::ContinueOrAbort
                     };
                     
-                    match copy_with_progress(ref_path_from_vec[index_path], &path_to, ref_opt, handler) {
+                    match copy_items_with_progress(&[ref_path_from_vec[index_path]], &path_to, ref_opt, handler) {
                         Ok(_) => {},
                         Err(e) => { println!("Cannot copy path {:?}.\nThrown error: {}", ref_path_from_vec[index_path], e) },
                     }

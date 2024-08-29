@@ -70,7 +70,8 @@ fn listen_for_keys(gui_opened: Arc<(Mutex<bool>, Condvar)>, backup_running: Arc<
                             // CTRL + SHIFT + ALT + B detected, notify main thread to reopen GUI and start backup
                             println!("CTRL + SHIFT + ALT + B detected!");
                             set_and_wait_condvar_tuple(gui_opened.clone(), Some(true), None);
-                            set_and_wait_condvar_tuple(backup_running.clone(), Some(true), None);
+                            
+                            // set_and_wait_condvar_tuple(backup_running.clone(), Some(true), None);
                             // ...call backup here
                         } else {
                             println!("Backup is already running.");

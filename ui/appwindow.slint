@@ -1,20 +1,29 @@
 import { Button, VerticalBox, HorizontalBox, GridBox } from "std-widgets.slint";
 import { Settings, AppSettings } from "settings_page.slint";
+import { MainPage } from "main_page.slint";
+import { BackupPage } from "backup_page.slint";
 
 export component AppWindow inherits Window {
     in-out property <AppSettings> app_settings;
     in-out property <int> selected_page: 0;
+    in-out property <float> backup_perc: 0;
+    in-out property <string> backup_log: "";
+    in-out property <bool> backup_completed: true;
     callback request-exit();
     callback request-save-settings(AppSettings);
     callback request-path-dialog(bool) -> string;   // If arg is true, open a Path dialog, else open a File dialog
-    width: 1000px;
-    height: 500px;
+    callback request-backup();
+    min-width: 800px;
+    min-height: 500px;
     default-font-size: 14px;
+    title: @tr("Rust Backup");
+    icon: @image-url("./Rust_logo.png");
 
     HorizontalLayout {
         VerticalLayout {
             width: 200px;
             spacing: 0px;
+            visible: backup_completed;
             //col: 0;
 
             Button {
@@ -37,7 +46,14 @@ export component AppWindow inherits Window {
         }
         
         VerticalLayout {
-            if (selected_page == 0) : Text { text: "Content for Page 1"; }
+            if (selected_page == 0) : MainPage {
+                backup => {
+                    backup_perc = 0;
+                    backup_completed = false;
+                    selected_page = 2;
+                    request-backup();
+                }
+            }
             if (selected_page == 1) : Settings { 
                 settings <=> app_settings;
                 save-settings => {
@@ -47,6 +63,11 @@ export component AppWindow inherits Window {
                 open-path-dialog(openPathDialog) => {
                     request-path-dialog(openPathDialog)
                 }
+            }
+            if (selected_page == 2) : BackupPage {
+                backup_completed <=> backup_completed;
+                backup_perc <=> backup_perc;
+                backup_log <=> backup_log;
             }
         }
     }

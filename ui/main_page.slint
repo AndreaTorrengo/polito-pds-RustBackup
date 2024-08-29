@@ -1,0 +1,39 @@
+
+
+import { Button, AboutSlint } from "std-widgets.slint";
+export component MainPage {
+    callback backup();
+    
+    GridLayout {
+        forward-focus: backup-btn;
+        padding: 60px;
+        VerticalLayout {
+            row: 0;
+            Text {
+                vertical-alignment: center;
+                horizontal-alignment: center;
+                text: "RUST Backup";
+                font-size: 32px;
+            }
+
+            backup_btn := Button {
+                padding-top: 40px;
+                height: 40px;
+                text: "Backup now!";
+                primary: true;
+
+                clicked => { backup(); }
+            }
+
+        }
+        // Second row
+        VerticalLayout {
+            padding-top: 50px;
+            max-height: 50px;
+            row: 1;
+            AboutSlint {
+                preferred-height: 30px;
+            }
+        }
+    }
+}
