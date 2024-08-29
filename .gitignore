@@ -5,3 +5,4 @@
 /daemon
 settings.dat
 cpu_usage.log
+backup.log
