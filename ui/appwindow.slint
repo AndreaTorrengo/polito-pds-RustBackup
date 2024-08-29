@@ -9,6 +9,7 @@ export component AppWindow inherits Window {
     in-out property <float> backup_perc: 0;
     in-out property <string> backup_log: "";
     in-out property <bool> backup_completed: true;
+    callback launch-background-thread();
     callback request-exit();
     callback request-save-settings(AppSettings);
     callback request-path-dialog(bool) -> string;   // If arg is true, open a Path dialog, else open a File dialog
@@ -18,6 +19,10 @@ export component AppWindow inherits Window {
     default-font-size: 14px;
     title: @tr("Rust Backup");
     icon: @image-url("./Rust_logo.png");
+
+    init => {
+        launch-background-thread();
+    }
 
     HorizontalLayout {
         VerticalLayout {

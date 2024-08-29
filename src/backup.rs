@@ -1,5 +1,4 @@
 use std::path::Path;
-use std::rc::Rc;
 use std::sync::{Arc, Mutex};
 use std::{thread, time};
 use std::sync::mpsc::{self, Receiver, Sender, TryRecvError};
@@ -12,16 +11,19 @@ use slint::invoke_from_event_loop;
 use crate::settings::*;
 use crate::ui::AppWindow;
 
-pub(crate) fn backup(config: Arc<Mutex<Settings>>, dest_path_str: &'static str, ui_handle: slint::Weak<AppWindow>) -> Result<()> {
-    let path_to = Path::new(dest_path_str);
-    create_all(&path_to, true)?;    // Create the destination directory, if it does not already exist
+pub(crate) fn backup(config: Arc<Mutex<Settings>>, ui_handle: slint::Weak<AppWindow>) -> Result<()> {
+    // Create the destination directory, if it does not already exist
+    let settings = config.lock().unwrap();
+    let path_to = Path::new(settings.default_backup_path.as_str());
+    if !path_to.exists() {
+        create_all(&path_to, true)?;
+    }
 
     let mut opt = CopyOptions::new();
-    opt.copy_inside = true;
+    //opt.copy_inside = true;
     opt.overwrite = true;
     //opt.buffer_size = 1;
     let (tx, rx): (Sender<TransitProcess>, Receiver<TransitProcess>) = mpsc::channel();
-    let settings = config.lock().unwrap();
     let mut path_from_vec: Vec<_> = vec![];
     //settings.paths_to_backup.iter().for_each(|path| { path_from_vec.push(path.as_str()); });
     settings.paths_to_backup.iter().for_each(|path| { path_from_vec.push(Path::new(path)); });
@@ -39,7 +41,7 @@ pub(crate) fn backup(config: Arc<Mutex<Settings>>, dest_path_str: &'static str, 
         // Receiver thread loop
         thread::spawn(move || {
             let files_status_mutex: Arc<Mutex<Vec<FileStat>>> = Arc::new(Mutex::new(Vec::new()));
-            let backup_log_mutex = Arc::new(Mutex::new(String::from("")));
+            let backup_log_mutex = Arc::new(Mutex::new(String::from("Beginning backup\n------------------------")));
 
             loop {
                 let files_status_m1 = files_status_mutex.clone();
@@ -47,7 +49,6 @@ pub(crate) fn backup(config: Arc<Mutex<Settings>>, dest_path_str: &'static str, 
                 let mut file_status_1 = files_status_m1.lock().unwrap();
                 let mut backup_log_1 = backup_log_m1.lock().unwrap();
 
-                let files_status_m2 = files_status_mutex.clone();
                 let backup_log_m2 = backup_log_mutex.clone();
                 let ui_handle_clone = ui_handle.clone();
 

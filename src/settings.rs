@@ -7,6 +7,7 @@ pub struct Settings {
     pub(crate) paths_to_backup: Vec<String>,
     pub(crate) keep_daemon_alive: bool,
     pub(crate) multi_thread: bool,
+    pub(crate) default_backup_path: String
 }
 impl Default for Settings {
     fn default() -> Self {
@@ -14,6 +15,7 @@ impl Default for Settings {
             paths_to_backup: vec![home::home_dir().expect("Cannot find home directory for this user").to_str().unwrap().to_owned()], 
             keep_daemon_alive: true,
             multi_thread: true,
+            default_backup_path: "./backup/".to_string(),
         }
     }
 }
@@ -40,6 +42,7 @@ pub(crate) fn read_settings(config_file_path: &str, config: &mut Settings) {
         let mut path_end_line: Option<usize> = None;
         let mut keep_daemon_alive_line: Option<usize> = None;
         let mut multi_thread_line: Option<usize> = None;
+        let mut default_backup_path_line: Option<usize> = None;
 
         for (index, elm) in content_lines.iter().enumerate() {
             if path_begin_line.is_none() && elm.contains("paths_to_backup") {
@@ -54,14 +57,18 @@ pub(crate) fn read_settings(config_file_path: &str, config: &mut Settings) {
             if multi_thread_line.is_none() && elm.contains("multi_thread") {
                 multi_thread_line = Some(index);
             }
+            if default_backup_path_line.is_none() && elm.contains("default_backup_path") {
+                default_backup_path_line = Some(index);
+            }
         }
-        if path_begin_line.is_none() || path_end_line.is_none() || keep_daemon_alive_line.is_none() || multi_thread_line.is_none() {
+        if path_begin_line.is_none() || path_end_line.is_none() || keep_daemon_alive_line.is_none() || multi_thread_line.is_none() || default_backup_path_line.is_none() {
             panic!("Invalid config in {}", config_file_path);
         }
         let path_lines = &content_lines[path_begin_line.unwrap()..=path_end_line.unwrap()];
         config.paths_to_backup = path_lines.iter().map(|p| p.trim().to_string()).collect();
         config.keep_daemon_alive = content_lines[keep_daemon_alive_line.unwrap()].contains("true");
         config.multi_thread = content_lines[multi_thread_line.unwrap()].contains("true");
+        config.default_backup_path = content_lines[default_backup_path_line.unwrap()].split("=").map(|x| x.to_string()).collect::<Vec<String>>()[1].clone();
     } else {
         *config = Settings::default();
         write_settings(config_file_path, config);
@@ -79,5 +86,6 @@ pub(crate) fn write_settings(config_file_path: &str, config: &Settings) {
     file.write(config.paths_to_backup.join("\n\t").as_bytes()).unwrap();
     file.write(b"\n}\n").unwrap();
     file.write(format!("keep_daemon_alive={}\n", config.keep_daemon_alive).as_bytes()).unwrap();
-    file.write(format!("multi_thread={}", config.multi_thread).as_bytes()).unwrap();
+    file.write(format!("multi_thread={}\n", config.multi_thread).as_bytes()).unwrap();
+    file.write(format!("default_backup_path={}", config.default_backup_path).as_bytes()).unwrap();
 }

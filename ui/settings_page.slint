@@ -4,6 +4,7 @@ export struct AppSettings {
     keep_alive: bool,
     multithread: bool,
     paths_to_backup: string,
+    default_backup_path: string,
 }
 
 
@@ -11,6 +12,7 @@ export component Settings {
     in-out property <AppSettings> settings;
     in-out property <bool> save-label-visible: false;
     in-out property <string> textarea_text: settings.paths-to-backup;
+    in-out property <string> default-backup-path: settings.default-backup-path;
     callback save-settings(AppSettings);
     callback open-path-dialog(bool) -> string;
 
@@ -93,13 +95,46 @@ export component Settings {
                 }
             }
         }
-        // Third row
+        GridLayout {
+            spacing-horizontal: 15px;
+            padding-top: 15px;
+            padding-bottom: 15px;
+            row: 2;
+
+            HorizontalLayout {
+                Text {
+                    vertical-alignment: center;
+                    text: "Backup path: ";
+                    font-size: 16px;
+                    width: 100px;
+                }
+                Rectangle {
+                    background: #3a4e5c;
+                    border-radius: 5px;
+                    
+                    def_path := TextInput {
+                        text <=> default-backup-path;
+                        font-size: 15px;
+                        vertical-alignment: center;
+                    }
+                }
+                Button {
+                    text: "Browse";
+                    width: 80px;
+
+                    clicked => {
+                        def-path.text = open-path-dialog(true);
+                    }
+                }
+            }
+        }
+        // Fourth row
         GridLayout {
             spacing-horizontal: 20px;
             spacing-vertical: 20px;
             padding-bottom: 30px;
             max-height: 100px;
-            row: 2;
+            row: 3;
             
             Button {
                 height: 40px;
@@ -108,6 +143,7 @@ export component Settings {
                 col: 0;
                 row: 0;
                 clicked => {
+                    settings.default-backup-path = default-backup-path;
                     settings.paths-to-backup = textarea_text;
                     save-label-visible = true;
                     save-settings(settings);
