@@ -10,9 +10,9 @@ use crate::ui::open_gui;
 use crate::utils::{get_value_condvar_tuple, set_and_wait_condvar_tuple};
 use crate::settings::Settings;
 
-fn log_cpu_usage(file: &mut std::fs::File, cpu_usage: f32) {
+fn log_cpu_usage(file: &mut std::fs::File, cpu_usage: f32, disk_usage_r: f32, disk_usage_w: f32) {
     // Log the CPU usage with a timestamp
-    let log_entry = format!("CPU usage: {:.2}%\n", cpu_usage);
+    let log_entry = format!("{}: CPU_usage={:.2}% -- Disk_usage_read={:.2}% -- Disk_usage_write={:.2}%\n", chrono::Local::now(), cpu_usage, disk_usage_r, disk_usage_w);
     file.write_all(log_entry.as_bytes()).expect("Failed to write to log file");
     //println!("{}", log_entry);
 }
@@ -146,6 +146,7 @@ fn listen_for_mouse_drag(listening: Arc<Mutex<bool>>, width: u32, height: u32) {
 */
 pub fn start_daemon(settings: Settings) {
     let settings_mutex = Arc::new(Mutex::new(settings));
+    let settings_mutex_thread = settings_mutex.clone();
     if is_process_already_running("rust_backup") {
         println!("This process is already running. Cannot launch more than one instance.");
         return;
@@ -171,8 +172,13 @@ pub fn start_daemon(settings: Settings) {
     // Spawn a thread for logging CPU consumption
     thread::spawn(move || {
         let mut sys = System::new_all();
+        let mut dir_path = settings_mutex_thread.lock().unwrap().default_backup_path.clone();
+        if !dir_path.ends_with("/") && !dir_path.ends_with("\\") {
+            dir_path.push('/');
+        }
+        let log_path = format!("{}cpu_usage.log", dir_path);
         // Open the log file in append mode
-        let mut file = std::fs::File::create("./cpu_usage.log").expect("Failed to open log file");
+        let mut file = std::fs::File::create(log_path).expect("Failed to open log file");
 
         loop {
             // Refresh the CPU usage
@@ -180,10 +186,16 @@ pub fn start_daemon(settings: Settings) {
             // Get the PID of the current process
             let pid = sysinfo::get_current_pid().expect("Failed to get PID");
             if let Some(process) = sys.process(pid) {
-                // Log CPU usage of the current process
-                let cpu_usage = process.cpu_usage();
-                //println!("CPU usage: {:.2}%", cpu_usage);
-                log_cpu_usage(&mut file, cpu_usage);
+                let cpu_usage = process.cpu_usage() / sys.cpus().len() as f32;
+                let mut disk_usage_r = 0.0;
+                let mut disk_usage_w = 0.0;
+                if process.disk_usage().total_read_bytes > 0 {
+                    disk_usage_r = process.disk_usage().read_bytes as f32 / process.disk_usage().total_read_bytes as f32;
+                }
+                if process.disk_usage().total_written_bytes > 0 {
+                    disk_usage_w = process.disk_usage().written_bytes as f32 / process.disk_usage().total_written_bytes as f32;
+                }
+                log_cpu_usage(&mut file, cpu_usage, disk_usage_r * 100 as f32, disk_usage_w * 100 as f32);
             } else {
                 println!("Process not found");
             }

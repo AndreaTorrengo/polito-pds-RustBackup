@@ -26,6 +26,7 @@ pub(crate) fn backup(config: Arc<Mutex<Settings>>, ui_handle: slint::Weak<AppWin
     //opt.buffer_size = 1;
     let (tx, rx): (Sender<TransitProcess>, Receiver<TransitProcess>) = mpsc::channel();
     let mut path_from_vec: Vec<_> = vec![];
+    let mut dir_file_log = settings.default_backup_path.clone();
     //settings.paths_to_backup.iter().for_each(|path| { path_from_vec.push(path.as_str()); });
     settings.paths_to_backup.iter().for_each(|path| { path_from_vec.push(Path::new(path)); });
     let multithread_enabled = settings.multi_thread;
@@ -94,7 +95,10 @@ pub(crate) fn backup(config: Arc<Mutex<Settings>>, ui_handle: slint::Weak<AppWin
                         }).unwrap();
                         println!("Backup completed!");
                         // Save backup log
-                        let mut file = std::fs::File::create("./backup.log").expect("Failed to create backup log file");
+                        if !dir_file_log.ends_with("/") && !dir_file_log.ends_with("\\") {
+                            dir_file_log.push('/');
+                        }
+                        let mut file = std::fs::File::create(format!("{}backup.log", dir_file_log)).expect("Failed to create backup log file");
                         let _ = file.write_all(backup_log_1.as_bytes());
                         break;
                     }
