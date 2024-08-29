@@ -14,8 +14,8 @@ export component AppWindow inherits Window {
     callback request-save-settings(AppSettings);
     callback request-path-dialog(bool) -> string;   // If arg is true, open a Path dialog, else open a File dialog
     callback request-backup();
-    min-width: 800px;
-    min-height: 500px;
+    min-width: 1000px;
+    min-height: 600px;
     default-font-size: 14px;
     title: @tr("Rust Backup");
     icon: @image-url("./Rust_logo.png");

@@ -1,3 +1,4 @@
+use std::io::Write;
 use std::path::Path;
 use std::sync::{Arc, Mutex};
 use std::{thread, time};
@@ -28,6 +29,7 @@ pub(crate) fn backup(config: Arc<Mutex<Settings>>, ui_handle: slint::Weak<AppWin
     //settings.paths_to_backup.iter().for_each(|path| { path_from_vec.push(path.as_str()); });
     settings.paths_to_backup.iter().for_each(|path| { path_from_vec.push(Path::new(path)); });
     let multithread_enabled = settings.multi_thread;
+    let npaths = settings.paths_to_backup.len();
 
     let ref_path_from_vec = &path_from_vec;
     let ref_opt = &opt;
@@ -57,7 +59,7 @@ pub(crate) fn backup(config: Arc<Mutex<Settings>>, ui_handle: slint::Weak<AppWin
                         let elm = file_status_1.iter_mut().find(|x| x.dir == process_info.dir_name && x.file == process_info.file_name);
                         
                         if elm.is_none() {
-                            backup_log_1.push_str(format!("\nBacking up {}/{}...", process_info.dir_name, process_info.file_name).as_str());
+                            backup_log_1.push_str(format!("\nBacking up {}/{}   (size: {:.2} KB)...", process_info.dir_name, process_info.file_name, process_info.file_total_bytes as f32 / 1024.0).as_str());
                             file_status_1.push(FileStat{
                                 dir: process_info.dir_name, 
                                 file: process_info.file_name, 
@@ -71,7 +73,7 @@ pub(crate) fn backup(config: Arc<Mutex<Settings>>, ui_handle: slint::Weak<AppWin
                             }).unwrap();
                         } else {
                             elm.unwrap().status = process_info.copied_bytes as f32 / process_info.total_bytes as f32;
-                            let status_sum = file_status_1.iter().map(|x| x.status / file_status_1.len() as f32).sum();
+                            let status_sum = file_status_1.iter().map(|x| x.status / npaths as f32).sum();
                             invoke_from_event_loop(move || {
                                 if let Some(ui_weak) = ui_handle_clone.upgrade() {
                                     ui_weak.set_backup_perc(status_sum);
@@ -91,6 +93,9 @@ pub(crate) fn backup(config: Arc<Mutex<Settings>>, ui_handle: slint::Weak<AppWin
                             }
                         }).unwrap();
                         println!("Backup completed!");
+                        // Save backup log
+                        let mut file = std::fs::File::create("./backup.log").expect("Failed to create backup log file");
+                        let _ = file.write_all(backup_log_1.as_bytes());
                         break;
                     }
                     Err(TryRecvError::Empty) => {}
@@ -116,7 +121,7 @@ pub(crate) fn backup(config: Arc<Mutex<Settings>>, ui_handle: slint::Weak<AppWin
                     let handler = |process_info: TransitProcess| {
                         let tx_clone_thread = tx_clone.clone();
                         tx_clone_thread.send(process_info).unwrap();
-                        thread::sleep(time::Duration::from_millis(500));
+                        thread::sleep(time::Duration::from_micros(500));
                         fs_extra::dir::TransitProcessResult::ContinueOrAbort
                     };
                     
