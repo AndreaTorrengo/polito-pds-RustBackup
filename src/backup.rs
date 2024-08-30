@@ -60,7 +60,7 @@ pub(crate) fn backup(config: Arc<Mutex<Settings>>, ui_handle: slint::Weak<AppWin
                         let elm = file_status_1.iter_mut().find(|x| x.dir == process_info.dir_name && x.file == process_info.file_name);
                         
                         if elm.is_none() {
-                            backup_log_1.push_str(format!("\nBacking up {}/{}   (size: {:.2} KB)...", process_info.dir_name, process_info.file_name, process_info.file_total_bytes as f32 / 1024.0).as_str());
+                            backup_log_1.push_str(format!("\nBacking up {}/{}   (size: {:.2} KB)...", process_info.dir_name, process_info.file_name, process_info.total_bytes as f32 / 1024.0).as_str());
                             file_status_1.push(FileStat{
                                 dir: process_info.dir_name, 
                                 file: process_info.file_name, 

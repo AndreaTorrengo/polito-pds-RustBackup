@@ -125,7 +125,6 @@ pub(crate) fn open_gui(bkrn_daemon: Arc<(Mutex<bool>, Condvar)>, settings_mutex:
         }
     });
     
-    
 
     ui.run()?;
     // Signal to the main (daemon) thread to continue execution or not
