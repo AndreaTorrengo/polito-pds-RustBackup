@@ -20,6 +20,7 @@ impl Default for Settings {
     }
 }
 pub const CONFIG_FILE_PATH: &str = "./settings.dat";
+pub const LOG_FILE_PATH: &str = "./cpu_usage.log";
 
 /**
  * Reads settings file. If it does not exists, create a new one.

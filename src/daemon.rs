@@ -6,7 +6,7 @@ use std::process::Command;
 use rdev::{/*display_size,*/ listen, Event, EventType, Key};
 use sysinfo::System;
 
-use crate::ui::open_gui;
+use crate::{ui::open_gui, LOG_FILE_PATH};
 use crate::utils::{get_value_condvar_tuple, set_and_wait_condvar_tuple};
 use crate::settings::Settings;
 
@@ -18,7 +18,7 @@ fn log_cpu_usage(file: &mut std::fs::File, cpu_usage: f32, disk_usage_r: f32, di
 }
 
 fn is_process_already_running(process_name: &str) -> bool {
-    let mut p_name = process_name.to_string();
+    let p_name = process_name.to_string();
     #[cfg(target_os = "windows")]
     if !p_name.ends_with(".exe") { p_name.push_str(".exe"); }
     #[cfg(target_os = "windows")]
@@ -28,14 +28,14 @@ fn is_process_already_running(process_name: &str) -> bool {
         .output()
         .expect("Failed to execute tasklist command");
     #[cfg(target_os = "linux")]
-    let output = Command::new("pgrep")
-        .arg(p_name)
+    let output = Command::new("ps")
+        .arg("-e")
         .output()
-        .expect("Failed to execute pgrep command");
+        .expect("Failed to execute ps command");
 
     let output_str = String::from_utf8_lossy(&output.stdout);
     let occurrencies_count = output_str.split("\n").filter(|s| s.contains(&p_name)).count();
-    //println!("{:?}", occurrencies_count);
+    //println!("{:?}", output_str);
     occurrencies_count > 1
 }
 
@@ -146,7 +146,7 @@ fn listen_for_mouse_drag(listening: Arc<Mutex<bool>>, width: u32, height: u32) {
 */
 pub fn start_daemon(settings: Settings) {
     let settings_mutex = Arc::new(Mutex::new(settings));
-    let settings_mutex_thread = settings_mutex.clone();
+    //let settings_mutex_thread = settings_mutex.clone();
     if is_process_already_running("rust_backup") {
         println!("This process is already running. Cannot launch more than one instance.");
         return;
@@ -172,12 +172,12 @@ pub fn start_daemon(settings: Settings) {
     // Spawn a thread for logging CPU consumption
     thread::spawn(move || {
         let mut sys = System::new_all();
-        let mut dir_path = settings_mutex_thread.lock().unwrap().default_backup_path.clone();
-        if !dir_path.ends_with("/") && !dir_path.ends_with("\\") {
-            dir_path.push('/');
-        }
-        let log_path = format!("{}cpu_usage.log", dir_path);
-        // Open the log file in append mode
+        // let mut dir_path = settings_mutex_thread.lock().unwrap().default_backup_path.clone();
+        // if !dir_path.ends_with("/") && !dir_path.ends_with("\\") {
+        //     dir_path.push('/');
+        // }
+        // let log_path = format!("{}cpu_usage.log", dir_path);
+        let log_path = LOG_FILE_PATH;
         let mut file = std::fs::File::create(log_path).expect("Failed to open log file");
 
         loop {

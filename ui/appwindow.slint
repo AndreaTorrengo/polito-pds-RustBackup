@@ -62,7 +62,7 @@ export component AppWindow inherits Window {
             if (selected_page == 1) : Settings { 
                 settings <=> app_settings;
                 save-settings => {
-                    selected_page = 0;
+                    //selected_page = 0;
                     request-save-settings(self.settings);
                 }
                 open-path-dialog(openPathDialog) => {
