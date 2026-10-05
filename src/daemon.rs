@@ -18,7 +18,7 @@ fn log_cpu_usage(file: &mut std::fs::File, cpu_usage: f32, disk_usage_r: f32, di
 }
 
 fn is_process_already_running(process_name: &str) -> bool {
-    let p_name = process_name.to_string();
+    let mut p_name = process_name.to_string();
     #[cfg(target_os = "windows")]
     if !p_name.ends_with(".exe") { p_name.push_str(".exe"); }
     #[cfg(target_os = "windows")]
